@@ -25,7 +25,7 @@ Config.Blips = {
 	JPounds = {Sprite = 67, Color = 49, Display = 2, Scale = 1.0}, -- Job Pound Blip.
 }
 
-Config.Ambulance = {
+Config.ambulance = {
 	Garages = false, -- true = Allows use of Ambulance Garages.
 	Pounds = false, -- true = Allows use of Ambulance Pounds.
 	Blips = false, -- true = Use Ambulance Blips.
@@ -37,7 +37,7 @@ Config.Ambulance = {
 	}
 }
 
-Config.Police = {
+Config.police = {
 	Garages = false, -- true = Allows use of Police Garages.
 	Pounds = false, -- true = Allows use of Police Pounds.
 	Blips = false, -- true = Use Police Blips.
@@ -49,7 +49,7 @@ Config.Police = {
 	}
 }
 
-Config.Mechanic = {
+Config.mechanic = {
 	Garages = false, -- true = Allows use of Mechanic Garages.
 	Pounds = false, -- true = Allows use of Mechanic Pounds.
 	Blips = false, -- true = Use Mechanic Blips.
