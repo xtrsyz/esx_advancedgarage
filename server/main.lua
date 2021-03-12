@@ -1,5 +1,9 @@
 ESX = nil
 
+function firstToUpper(str)
+	return (str:gsub("^%l", string.upper))
+end
+
 TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
 
 -- Make sure all Vehicles are Stored on restart
@@ -179,6 +183,7 @@ ESX.RegisterServerCallback('esx_advancedgarage:payImpound', function(source, cb,
 					cb(false)
 				end
 			else
+				job = firstToUpper(job)
 				xPlayer.removeMoney(Config[job].PoundP)
 				TriggerClientEvent('esx:showNotification', source, _U('you_paid') .. Config[job].PoundP)
 				if Config.Main.GiveSocMoney then

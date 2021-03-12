@@ -3,6 +3,12 @@ local HasAlreadyEnteredMarker = false
 local LastZone, CurrentAction, CurrentActionMsg, garageName
 ESX = nil
 
+local jobName, Garages, Pounds
+
+function firstToUpper(str)
+	return (str:gsub("^%l", string.upper))
+end
+
 Citizen.CreateThread(function()
 	while ESX == nil do
 		TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
@@ -14,9 +20,13 @@ Citizen.CreateThread(function()
 	end
 
 	ESX.PlayerData = ESX.GetPlayerData()
+	JobName = firstToUpper(ESX.PlayerData.job.name)
+	Garages = JobName .. 'Garages'
+	Pounds = JobName .. 'Pounds'
 
 	CreateBlips()
 	RefreshJobBlips()
+	StartThread()
 end)
 
 RegisterNetEvent('esx:playerLoaded')
@@ -30,13 +40,19 @@ AddEventHandler('esx:playerLoaded', function(xPlayer)
 	end
 
 	ESX.PlayerData = xPlayer
+	JobName = firstToUpper(ESX.PlayerData.job.name)
+	Garages = JobName .. 'Garages'
+	Pounds = JobName .. 'Pounds'
 
 	RefreshJobBlips()
 end)
 
 RegisterNetEvent('esx:setJob')
 AddEventHandler('esx:setJob', function(job)
-    ESX.PlayerData.job = job
+	ESX.PlayerData.job = job
+	JobName = firstToUpper(ESX.PlayerData.job.name)
+	Garages = JobName .. 'Garages'
+	Pounds = JobName .. 'Pounds'
 
 	DeleteJobBlips()
 	RefreshJobBlips()
@@ -204,6 +220,7 @@ function OpenJobImpoundMenu(job)
 			{label = _U('helis'), value = 'helis'}
 	}}, function(data, menu)
 		local action = data.current.value
+		local JobName = firstToUpper(job)
 
 		if action == 'cars' then
 			local elements = {head = {_U('veh_plate'), _U('veh_name'), _U('impound_fee'), _U('actions')}, rows = {}}
@@ -212,7 +229,7 @@ function OpenJobImpoundMenu(job)
 					ESX.ShowNotification(_U('impound_no'))
 				else
 					for _,v in pairs(outCars) do
-						table.insert(elements.rows, {data = v, cols = {v.plate, v.vehName, _U('impound_fee_value', ESX.Math.GroupDigits(Config[job].PoundP)), '{{' .. _U('return') .. '|return}}'}})
+						table.insert(elements.rows, {data = v, cols = {v.plate, v.vehName, _U('impound_fee_value', ESX.Math.GroupDigits(Config[JobName].PoundP)), '{{' .. _U('return') .. '|return}}'}})
 					end
 
 					ESX.UI.Menu.Open('list', GetCurrentResourceName(), 'out_owned_vehicles_list', elements, function(data2, menu2)
@@ -258,7 +275,7 @@ function OpenJobImpoundMenu(job)
 					ESX.ShowNotification(_U('impound_no'))
 				else
 					for _,v in pairs(outHelis) do
-						table.insert(elements.rows, {data = v, cols = {v.plate, v.vehName, _U('impound_fee_value', ESX.Math.GroupDigits(Config[job].PoundP)), '{{' .. _U('return') .. '|return}}'}})
+						table.insert(elements.rows, {data = v, cols = {v.plate, v.vehName, _U('impound_fee_value', ESX.Math.GroupDigits(Config[JobName].PoundP)), '{{' .. _U('return') .. '|return}}'}})
 					end
 
 					ESX.UI.Menu.Open('list', GetCurrentResourceName(), 'out_owned_vehicles_list', elements, function(data2, menu2)
@@ -303,8 +320,9 @@ function OpenJobImpoundMenu(job)
 	end)
 end
 
-function StoreOwnedJobMenu(job)
+function StoreOwnedJobMenu(JobName)
 	local playerPed  = GetPlayerPed(-1)
+	local JobName = firstToUpper(JobName)
 
 	if IsPedInAnyVehicle(playerPed,  false) then
 		local playerPed = GetPlayerPed(-1)
@@ -319,10 +337,10 @@ function StoreOwnedJobMenu(job)
 			if valid then
 				if engineHealth < 990 then
 					if Config.Main.DamageMult then
-						local apprasial = math.floor((1000 - engineHealth)/1000*Config[job].PoundP*Config.Main.MultAmount)
+						local apprasial = math.floor((1000 - engineHealth)/1000*Config[JobName].PoundP*Config.Main.MultAmount)
 						RepairVehicle(apprasial, vehicle, vehicleProps)
 					else
-						local apprasial = math.floor((1000 - engineHealth)/1000*Config[job].PoundP)
+						local apprasial = math.floor((1000 - engineHealth)/1000*Config[JobName].PoundP)
 						RepairVehicle(apprasial, vehicle, vehicleProps)
 					end
 				else
@@ -1023,40 +1041,16 @@ end
 
 -- Entered Marker
 AddEventHandler('esx_advancedgarage:hasEnteredMarker', function(zone)
-	if zone == 'ambulance_garage_point' then
-		CurrentAction = 'ambulance_garage_point'
+	if zone == 'job_garage_point' then
+		CurrentAction = 'job_garage_point'
 		CurrentActionMsg = _U('press_to_enter')
 		CurrentActionData = {}
-	elseif zone == 'ambulance_store_point' then
-		CurrentAction = 'ambulance_store_point'
+	elseif zone == 'job_store_point' then
+		CurrentAction = 'job_store_point'
 		CurrentActionMsg = _U('press_to_delete')
 		CurrentActionData = {}
-	elseif zone == 'ambulance_pound_point' then
-		CurrentAction = 'ambulance_pound_point'
-		CurrentActionMsg = _U('press_to_impound')
-		CurrentActionData = {}
-	elseif zone == 'police_garage_point' then
-		CurrentAction = 'police_garage_point'
-		CurrentActionMsg = _U('press_to_enter')
-		CurrentActionData = {}
-	elseif zone == 'police_store_point' then
-		CurrentAction = 'police_store_point'
-		CurrentActionMsg = _U('press_to_delete')
-		CurrentActionData = {}
-	elseif zone == 'police_pound_point' then
-		CurrentAction = 'police_pound_point'
-		CurrentActionMsg = _U('press_to_impound')
-		CurrentActionData = {}
-	elseif zone == 'mechanic_garage_point' then
-		CurrentAction = 'mechanic_garage_point'
-		CurrentActionMsg = _U('press_to_enter')
-		CurrentActionData = {}
-	elseif zone == 'mechanic_store_point' then
-		CurrentAction = 'mechanic_store_point'
-		CurrentActionMsg = _U('press_to_delete')
-		CurrentActionData = {}
-	elseif zone == 'mechanic_pound_point' then
-		CurrentAction = 'mechanic_pound_point'
+	elseif zone == 'job_pound_point' then
+		CurrentAction = 'job_pound_point'
 		CurrentActionMsg = _U('press_to_impound')
 		CurrentActionData = {}
 	elseif zone == 'aircraft_garage_point' then
@@ -1111,6 +1105,9 @@ AddEventHandler('onResourceStop', function(resource)
 	end
 end)
 
+-- Begin StartThread
+function StartThread()
+
 -- Enter / Exit marker events & Draw Markers
 Citizen.CreateThread(function()
 	while true do
@@ -1118,186 +1115,65 @@ Citizen.CreateThread(function()
 		local playerCoords = GetEntityCoords(PlayerPedId())
 		local isInMarker, letSleep, currentZone = false, true
 
-		if Config.Ambulance.Garages then
-			if ESX.PlayerData.job and ESX.PlayerData.job.name == 'ambulance' then
-				for k,v in pairs(Config.AmbulanceGarages) do
-					local distance = #(playerCoords - v.Marker)
-					local distance2 = #(playerCoords - v.Deleter)
+		if Config[JobName] and Config[JobName].Garages then
+			for k,v in pairs(Config[Garages]) do
+				local distance = #(playerCoords - v.Marker)
+				local distance2 = #(playerCoords - v.Deleter)
+
+				if distance < Config.Main.DrawDistance then
+					letSleep = false
+
+					if Config[JobName].Markers.Points.Type ~= -1 then
+						DrawMarker(Config[JobName].Markers.Points.Type, v.Marker, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config[JobName].Markers.Points.x, Config[JobName].Markers.Points.y, Config[JobName].Markers.Points.z, Config[JobName].Markers.Points.r, Config[JobName].Markers.Points.g, Config[JobName].Markers.Points.b, 100, false, true, 2, false, nil, nil, false)
+					end
+
+					if distance < Config[JobName].Markers.Points.x then
+						garageName, isInMarker, this_Garage, currentZone = k, true, v, 'job_garage_point'
+					end
+				end
+
+				if distance2 < Config.Main.DrawDistance then
+					letSleep = false
+
+					if Config[JobName].Markers.Delete.Type ~= -1 then
+						DrawMarker(Config[JobName].Markers.Delete.Type, v.Deleter, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config[JobName].Markers.Delete.x, Config[JobName].Markers.Delete.y, Config[JobName].Markers.Delete.z, Config[JobName].Markers.Delete.r, Config[JobName].Markers.Delete.g, Config[JobName].Markers.Delete.b, 100, false, true, 2, false, nil, nil, false)
+					end
+
+					if distance2 < Config[JobName].Markers.Delete.x then
+						garageName, isInMarker, this_Garage, currentZone = k, true, v, 'job_store_point'
+					end
+				end
+
+				if v.Deleter2 then
 					local distance3 = #(playerCoords - v.Deleter2)
-
-					if distance < Config.Main.DrawDistance then
-						letSleep = false
-
-						if Config.Ambulance.Markers.Points.Type ~= -1 then
-							DrawMarker(Config.Ambulance.Markers.Points.Type, v.Marker, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Ambulance.Markers.Points.x, Config.Ambulance.Markers.Points.y, Config.Ambulance.Markers.Points.z, Config.Ambulance.Markers.Points.r, Config.Ambulance.Markers.Points.g, Config.Ambulance.Markers.Points.b, 100, false, true, 2, false, nil, nil, false)
-						end
-
-						if distance < Config.Ambulance.Markers.Points.x then
-							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'ambulance_garage_point'
-						end
-					end
-
-					if distance2 < Config.Main.DrawDistance then
-						letSleep = false
-
-						if Config.Ambulance.Markers.Delete.Type ~= -1 then
-							DrawMarker(Config.Ambulance.Markers.Delete.Type, v.Deleter, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Ambulance.Markers.Delete.x, Config.Ambulance.Markers.Delete.y, Config.Ambulance.Markers.Delete.z, Config.Ambulance.Markers.Delete.r, Config.Ambulance.Markers.Delete.g, Config.Ambulance.Markers.Delete.b, 100, false, true, 2, false, nil, nil, false)
-						end
-
-						if distance2 < Config.Ambulance.Markers.Delete.x then
-							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'ambulance_store_point'
-						end
-					end
-
 					if distance3 < Config.Main.DrawDistance then
 						letSleep = false
 
-						if Config.Ambulance.Markers.Delete.Type ~= -1 then
-							DrawMarker(Config.Ambulance.Markers.Delete.Type, v.Deleter2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Ambulance.Markers.Delete.x, Config.Ambulance.Markers.Delete.y, Config.Ambulance.Markers.Delete.z, Config.Ambulance.Markers.Delete.r, Config.Ambulance.Markers.Delete.g, Config.Ambulance.Markers.Delete.b, 100, false, true, 2, false, nil, nil, false)
+						if Config[JobName].Markers.Delete.Type ~= -1 then
+							DrawMarker(Config[JobName].Markers.Delete.Type, v.Deleter2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config[JobName].Markers.Delete.x, Config[JobName].Markers.Delete.y, Config[JobName].Markers.Delete.z, Config[JobName].Markers.Delete.r, Config[JobName].Markers.Delete.g, Config[JobName].Markers.Delete.b, 100, false, true, 2, false, nil, nil, false)
 						end
 
-						if distance3 < Config.Ambulance.Markers.Delete.x then
-							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'ambulance_store_point'
-						end
-					end
-				end
-			end
-		end
-
-		if Config.Ambulance.Pounds then
-			if ESX.PlayerData.job and ESX.PlayerData.job.name == 'ambulance' then
-				for k,v in pairs(Config.AmbulancePounds) do
-					local distance = #(playerCoords - v.Marker)
-
-					if distance < Config.Main.DrawDistance then
-						letSleep = false
-
-						if Config.Ambulance.Markers.Pounds.Type ~= -1 then
-							DrawMarker(Config.Ambulance.Markers.Pounds.Type, v.Marker, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Ambulance.Markers.Pounds.x, Config.Ambulance.Markers.Pounds.y, Config.Ambulance.Markers.Pounds.z, Config.Ambulance.Markers.Pounds.r, Config.Ambulance.Markers.Pounds.g, Config.Ambulance.Markers.Pounds.b, 100, false, true, 2, false, nil, nil, false)
-						end
-
-						if distance < Config.Ambulance.Markers.Pounds.x then
-							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'ambulance_pound_point'
+						if distance3 < Config[JobName].Markers.Delete.x then
+							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'job_store_point'
 						end
 					end
 				end
 			end
 		end
 
-		if Config.Police.Garages then
-			if ESX.PlayerData.job and ESX.PlayerData.job.name == 'police' then
-				for k,v in pairs(Config.PoliceGarages) do
-					local distance = #(playerCoords - v.Marker)
-					local distance2 = #(playerCoords - v.Deleter)
-					local distance3 = #(playerCoords - v.Deleter2)
+		if Config[JobName] and Config[JobName].Pounds then
+			for k,v in pairs(Config[Pounds]) do
+				local distance = #(playerCoords - v.Marker)
 
-					if distance < Config.Main.DrawDistance then
-						letSleep = false
+				if distance < Config.Main.DrawDistance then
+					letSleep = false
 
-						if Config.Police.Markers.Points.Type ~= -1 then
-							DrawMarker(Config.Police.Markers.Points.Type, v.Marker, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Police.Markers.Points.x, Config.Police.Markers.Points.y, Config.Police.Markers.Points.z, Config.Police.Markers.Points.r, Config.Police.Markers.Points.g, Config.Police.Markers.Points.b, 100, false, true, 2, false, nil, nil, false)
-						end
-
-						if distance < Config.Police.Markers.Points.x then
-							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'police_garage_point'
-						end
+					if Config[JobName].Markers.Pounds.Type ~= -1 then
+						DrawMarker(Config[JobName].Markers.Pounds.Type, v.Marker, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config[JobName].Markers.Pounds.x, Config[JobName].Markers.Pounds.y, Config[JobName].Markers.Pounds.z, Config[JobName].Markers.Pounds.r, Config[JobName].Markers.Pounds.g, Config[JobName].Markers.Pounds.b, 100, false, true, 2, false, nil, nil, false)
 					end
 
-					if distance2 < Config.Main.DrawDistance then
-						letSleep = false
-
-						if Config.Police.Markers.Delete.Type ~= -1 then
-							DrawMarker(Config.Police.Markers.Delete.Type, v.Deleter, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Police.Markers.Delete.x, Config.Police.Markers.Delete.y, Config.Police.Markers.Delete.z, Config.Police.Markers.Delete.r, Config.Police.Markers.Delete.g, Config.Police.Markers.Delete.b, 100, false, true, 2, false, nil, nil, false)
-						end
-
-						if distance2 < Config.Police.Markers.Delete.x then
-							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'police_store_point'
-						end
-					end
-
-					if distance3 < Config.Main.DrawDistance then
-						letSleep = false
-
-						if Config.Police.Markers.Delete.Type ~= -1 then
-							DrawMarker(Config.Police.Markers.Delete.Type, v.Deleter2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Police.Markers.Delete.x, Config.Police.Markers.Delete.y, Config.Police.Markers.Delete.z, Config.Police.Markers.Delete.r, Config.Police.Markers.Delete.g, Config.Police.Markers.Delete.b, 100, false, true, 2, false, nil, nil, false)
-						end
-
-						if distance3 < Config.Police.Markers.Delete.x then
-							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'police_store_point'
-						end
-					end
-				end
-			end
-		end
-
-		if Config.Police.Pounds then
-			if ESX.PlayerData.job and ESX.PlayerData.job.name == 'police' then
-				for k,v in pairs(Config.PolicePounds) do
-					local distance = #(playerCoords - v.Marker)
-
-					if distance < Config.Main.DrawDistance then
-						letSleep = false
-
-						if Config.Police.Markers.Pounds.Type ~= -1 then
-							DrawMarker(Config.Police.Markers.Pounds.Type, v.Marker, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Police.Markers.Pounds.x, Config.Police.Markers.Pounds.y, Config.Police.Markers.Pounds.z, Config.Police.Markers.Pounds.r, Config.Police.Markers.Pounds.g, Config.Police.Markers.Pounds.b, 100, false, true, 2, false, nil, nil, false)
-						end
-
-						if distance < Config.Police.Markers.Pounds.x then
-							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'police_pound_point'
-						end
-					end
-				end
-			end
-		end
-
-		if Config.Mechanic.Garages then
-			if ESX.PlayerData.job and ESX.PlayerData.job.name == 'mechanic' then
-				for k,v in pairs(Config.MechanicGarages) do
-					local distance = #(playerCoords - v.Marker)
-					local distance2 = #(playerCoords - v.Deleter)
-
-					if distance < Config.Main.DrawDistance then
-						letSleep = false
-
-						if Config.Mechanic.Markers.Points.Type ~= -1 then
-							DrawMarker(Config.Mechanic.Markers.Points.Type, v.Marker, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Mechanic.Markers.Points.x, Config.Mechanic.Markers.Points.y, Config.Mechanic.Markers.Points.z, Config.Mechanic.Markers.Points.r, Config.Mechanic.Markers.Points.g, Config.Mechanic.Markers.Points.b, 100, false, true, 2, false, nil, nil, false)
-						end
-
-						if distance < Config.Mechanic.Markers.Points.x then
-							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'mechanic_garage_point'
-						end
-					end
-
-					if distance2 < Config.Main.DrawDistance then
-						letSleep = false
-
-						if Config.Mechanic.Markers.Delete.Type ~= -1 then
-							DrawMarker(Config.Mechanic.Markers.Delete.Type, v.Deleter, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Mechanic.Markers.Delete.x, Config.Mechanic.Markers.Delete.y, Config.Mechanic.Markers.Delete.z, Config.Mechanic.Markers.Delete.r, Config.Mechanic.Markers.Delete.g, Config.Mechanic.Markers.Delete.b, 100, false, true, 2, false, nil, nil, false)
-						end
-
-						if distance2 < Config.Mechanic.Markers.Delete.x then
-							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'mechanic_store_point'
-						end
-					end
-				end
-			end
-		end
-
-		if Config.Mechanic.Pounds then
-			if ESX.PlayerData.job and ESX.PlayerData.job.name == 'mechanic' then
-				for k,v in pairs(Config.MechanicPounds) do
-					local distance = #(playerCoords - v.Marker)
-
-					if distance < Config.Main.DrawDistance then
-						letSleep = false
-
-						if Config.Mechanic.Markers.Pounds.Type ~= -1 then
-							DrawMarker(Config.Mechanic.Markers.Pounds.Type, v.Marker, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Mechanic.Markers.Pounds.x, Config.Mechanic.Markers.Pounds.y, Config.Mechanic.Markers.Pounds.z, Config.Mechanic.Markers.Pounds.r, Config.Mechanic.Markers.Pounds.g, Config.Mechanic.Markers.Pounds.b, 100, false, true, 2, false, nil, nil, false)
-						end
-
-						if distance < Config.Mechanic.Markers.Pounds.x then
-							garageName, isInMarker, this_Garage, currentZone = k, true, v, 'mechanic_pound_point'
-						end
+					if distance < Config[JobName].Markers.Pounds.x then
+						garageName, isInMarker, this_Garage, currentZone = k, true, v, 'job_pound_point'
 					end
 				end
 			end
@@ -1506,107 +1382,27 @@ Citizen.CreateThread(function()
 			ESX.ShowHelpNotification(CurrentActionMsg)
 
 			if IsControlJustReleased(0, 38) then
-				if CurrentAction == 'ambulance_garage_point' then
-					if ESX.PlayerData.job and ESX.PlayerData.job.name == 'ambulance' then
-						if not IsPedSittingInAnyVehicle(PlayerPedId()) then
-							OpenJobGarageMenu(ESX.PlayerData.job.name)
-						else
-							ESX.ShowNotification(_U('cant_in_veh'))
-						end
+				if CurrentAction == 'job_garage_point' then
+					if not IsPedSittingInAnyVehicle(PlayerPedId()) then
+						OpenJobGarageMenu(ESX.PlayerData.job.name)
 					else
-						ESX.ShowNotification(_U('must_ambulance'))
+						ESX.ShowNotification(_U('cant_in_veh'))
 					end
-				elseif CurrentAction == 'ambulance_store_point' then
-					if ESX.PlayerData.job and ESX.PlayerData.job.name == 'ambulance' then
-						if IsThisModelACar(model) or IsThisModelABicycle(model) or IsThisModelABike(model) or IsThisModelAHeli(model) then
-							if (GetPedInVehicleSeat(playerVeh, -1) == playerPed) then
-								StoreOwnedJobMenu(ESX.PlayerData.job.name)
-							else
-								ESX.ShowNotification(_U('driver_seat'))
-							end
+				elseif CurrentAction == 'job_store_point' then
+					if IsThisModelACar(model) or IsThisModelABicycle(model) or IsThisModelABike(model) or IsThisModelAHeli(model) then
+						if (GetPedInVehicleSeat(playerVeh, -1) == playerPed) then
+							StoreOwnedJobMenu(ESX.PlayerData.job.name)
 						else
-							ESX.ShowNotification(_U('not_correct_veh'))
+							ESX.ShowNotification(_U('driver_seat'))
 						end
 					else
-						ESX.ShowNotification(_U('must_ambulance'))
+						ESX.ShowNotification(_U('not_correct_veh'))
 					end
-				elseif CurrentAction == 'ambulance_pound_point' then
-					if ESX.PlayerData.job and ESX.PlayerData.job.name == 'ambulance' then
-						if not IsPedSittingInAnyVehicle(PlayerPedId()) then
-							OpenJobImpoundMenu(ESX.PlayerData.job.name)
-						else
-							ESX.ShowNotification(_U('cant_in_veh'))
-						end
+				elseif CurrentAction == 'job_pound_point' then
+					if not IsPedSittingInAnyVehicle(PlayerPedId()) then
+						OpenJobImpoundMenu(ESX.PlayerData.job.name)
 					else
-						ESX.ShowNotification(_U('must_ambulance'))
-					end
-				elseif CurrentAction == 'police_garage_point' then
-					if ESX.PlayerData.job and ESX.PlayerData.job.name == 'police' then
-						if not IsPedSittingInAnyVehicle(PlayerPedId()) then
-							OpenJobGarageMenu(ESX.PlayerData.job.name)
-						else
-							ESX.ShowNotification(_U('cant_in_veh'))
-						end
-					else
-						ESX.ShowNotification(_U('must_police'))
-					end
-				elseif CurrentAction == 'police_store_point' then
-					if ESX.PlayerData.job and ESX.PlayerData.job.name == 'police' then
-						if IsThisModelACar(model) or IsThisModelABicycle(model) or IsThisModelABike(model) or IsThisModelAHeli(model) then
-							if (GetPedInVehicleSeat(playerVeh, -1) == playerPed) then
-								StoreOwnedJobMenu(ESX.PlayerData.job.name)
-							else
-								ESX.ShowNotification(_U('driver_seat'))
-							end
-						else
-							ESX.ShowNotification(_U('not_correct_veh'))
-						end
-					else
-						ESX.ShowNotification(_U('must_police'))
-					end
-				elseif CurrentAction == 'police_pound_point' then
-					if ESX.PlayerData.job and ESX.PlayerData.job.name == 'police' then
-						if not IsPedSittingInAnyVehicle(PlayerPedId()) then
-							OpenJobImpoundMenu(ESX.PlayerData.job.name)
-						else
-							ESX.ShowNotification(_U('cant_in_veh'))
-						end
-					else
-						ESX.ShowNotification(_U('must_police'))
-					end
-				elseif CurrentAction == 'mechanic_garage_point' then
-					if ESX.PlayerData.job and ESX.PlayerData.job.name == 'mechanic' then
-						if not IsPedSittingInAnyVehicle(PlayerPedId()) then
-							OpenJobGarageMenu(ESX.PlayerData.job.name)
-						else
-							ESX.ShowNotification(_U('cant_in_veh'))
-						end
-					else
-						ESX.ShowNotification(_U('must_mechanic'))
-					end
-				elseif CurrentAction == 'mechanic_store_point' then
-					if ESX.PlayerData.job and ESX.PlayerData.job.name == 'mechanic' then
-						if IsThisModelACar(model) or IsThisModelABicycle(model) or IsThisModelABike(model) or IsThisModelAHeli(model) then
-							if (GetPedInVehicleSeat(playerVeh, -1) == playerPed) then
-								StoreOwnedJobMenu(ESX.PlayerData.job.name)
-							else
-								ESX.ShowNotification(_U('driver_seat'))
-							end
-						else
-							ESX.ShowNotification(_U('not_correct_veh'))
-						end
-					else
-						ESX.ShowNotification(_U('must_mechanic'))
-					end
-				elseif CurrentAction == 'mechanic_pound_point' then
-					if ESX.PlayerData.job and ESX.PlayerData.job.name == 'mechanic' then
-						if not IsPedSittingInAnyVehicle(PlayerPedId()) then
-							OpenJobImpoundMenu(ESX.PlayerData.job.name)
-						else
-							ESX.ShowNotification(_U('cant_in_veh'))
-						end
-					else
-						ESX.ShowNotification(_U('must_mechanic'))
+						ESX.ShowNotification(_U('cant_in_veh'))
 					end
 				elseif CurrentAction == 'aircraft_garage_point' then
 					if not IsPedSittingInAnyVehicle(PlayerPedId()) then
@@ -1679,6 +1475,8 @@ Citizen.CreateThread(function()
 		end
 	end
 end)
+
+end -- End StartThread
 
 -- Create Blips
 function CreateBlips()
@@ -1819,117 +1617,37 @@ function DeleteJobBlips()
 end
 
 function RefreshJobBlips()
-	if Config.Ambulance.Garages and Config.Ambulance.Blips then
-		if ESX.PlayerData.job and ESX.PlayerData.job.name == 'ambulance' then
-			for k,v in pairs(Config.AmbulanceGarages) do
-				local blip = AddBlipForCoord(v.Marker)
+	if Config[JobName] and Config[JobName].Garages and Config[JobName].Blips then
+		for k,v in pairs(Config[Garages]) do
+			local blip = AddBlipForCoord(v.Marker)
 
-				SetBlipSprite (blip, Config.Blips.JGarages.Sprite)
-				SetBlipColour (blip, Config.Blips.JGarages.Color)
-				SetBlipDisplay(blip, Config.Blips.JGarages.Display)
-				SetBlipScale  (blip, Config.Blips.JGarages.Scale)
-				SetBlipAsShortRange(blip, true)
+			SetBlipSprite (blip, Config.Blips.JGarages.Sprite)
+			SetBlipColour (blip, Config.Blips.JGarages.Color)
+			SetBlipDisplay(blip, Config.Blips.JGarages.Display)
+			SetBlipScale  (blip, Config.Blips.JGarages.Scale)
+			SetBlipAsShortRange(blip, true)
 
-				BeginTextCommandSetBlipName("STRING")
-				AddTextComponentString(_U('blip_ambulance_garage'))
-				EndTextCommandSetBlipName(blip)
-				table.insert(JobBlips, blip)
-			end
+			BeginTextCommandSetBlipName("STRING")
+			AddTextComponentString(_U('blip_'..jobName..'_garage'))
+			EndTextCommandSetBlipName(blip)
+			table.insert(JobBlips, blip)
 		end
 	end
 
-	if Config.Ambulance.Pounds and Config.Ambulance.Blips then
-		if ESX.PlayerData.job and ESX.PlayerData.job.name == 'ambulance' then
-			for k,v in pairs(Config.AmbulancePounds) do
-				local blip = AddBlipForCoord(v.Marker)
+	if Config[JobName] and Config[JobName].Pounds and  Config[JobName].Blips then
+		for k,v in pairs(Config[Pounds]) do
+			local blip = AddBlipForCoord(v.Marker)
 
-				SetBlipSprite (blip, Config.Blips.JPounds.Sprite)
-				SetBlipColour (blip, Config.Blips.JPounds.Color)
-				SetBlipDisplay(blip, Config.Blips.JPounds.Display)
-				SetBlipScale  (blip, Config.Blips.JPounds.Scale)
-				SetBlipAsShortRange(blip, true)
+			SetBlipSprite (blip, Config.Blips.JPounds.Sprite)
+			SetBlipColour (blip, Config.Blips.JPounds.Color)
+			SetBlipDisplay(blip, Config.Blips.JPounds.Display)
+			SetBlipScale  (blip, Config.Blips.JPounds.Scale)
+			SetBlipAsShortRange(blip, true)
 
-				BeginTextCommandSetBlipName("STRING")
-				AddTextComponentString(_U('blip_ambulance_impound'))
-				EndTextCommandSetBlipName(blip)
-				table.insert(JobBlips, blip)
-			end
-		end
-	end
-
-	if Config.Police.Garages and Config.Police.Blips then
-		if ESX.PlayerData.job and ESX.PlayerData.job.name == 'police' then
-			for k,v in pairs(Config.PoliceGarages) do
-				local blip = AddBlipForCoord(v.Marker)
-
-				SetBlipSprite (blip, Config.Blips.JGarages.Sprite)
-				SetBlipColour (blip, Config.Blips.JGarages.Color)
-				SetBlipDisplay(blip, Config.Blips.JGarages.Display)
-				SetBlipScale  (blip, Config.Blips.JGarages.Scale)
-				SetBlipAsShortRange(blip, true)
-
-				BeginTextCommandSetBlipName("STRING")
-				AddTextComponentString(_U('blip_police_garage'))
-				EndTextCommandSetBlipName(blip)
-				table.insert(JobBlips, blip)
-			end
-		end
-	end
-
-	if Config.Police.Pounds and Config.Police.Blips then
-		if ESX.PlayerData.job and ESX.PlayerData.job.name == 'police' then
-			for k,v in pairs(Config.PolicePounds) do
-				local blip = AddBlipForCoord(v.Marker)
-
-				SetBlipSprite (blip, Config.Blips.JPounds.Sprite)
-				SetBlipColour (blip, Config.Blips.JPounds.Color)
-				SetBlipDisplay(blip, Config.Blips.JPounds.Display)
-				SetBlipScale  (blip, Config.Blips.JPounds.Scale)
-				SetBlipAsShortRange(blip, true)
-
-				BeginTextCommandSetBlipName("STRING")
-				AddTextComponentString(_U('blip_police_impound'))
-				EndTextCommandSetBlipName(blip)
-				table.insert(JobBlips, blip)
-			end
-		end
-	end
-
-	if Config.Mechanic.Garages and Config.Mechanic.Blips then
-		if ESX.PlayerData.job and ESX.PlayerData.job.name == 'mechanic' then
-			for k,v in pairs(Config.MechanicGarages) do
-				local blip = AddBlipForCoord(v.Marker)
-
-				SetBlipSprite (blip, Config.Blips.JGarages.Sprite)
-				SetBlipColour (blip, Config.Blips.JGarages.Color)
-				SetBlipDisplay(blip, Config.Blips.JGarages.Display)
-				SetBlipScale  (blip, Config.Blips.JGarages.Scale)
-				SetBlipAsShortRange(blip, true)
-
-				BeginTextCommandSetBlipName("STRING")
-				AddTextComponentString(_U('blip_mechanic_garage'))
-				EndTextCommandSetBlipName(blip)
-				table.insert(JobBlips, blip)
-			end
-		end
-	end
-
-	if Config.Mechanic.Pounds and Config.Mechanic.Blips then
-		if ESX.PlayerData.job and ESX.PlayerData.job.name == 'mechanic' then
-			for k,v in pairs(Config.MechanicPounds) do
-				local blip = AddBlipForCoord(v.Marker)
-
-				SetBlipSprite (blip, Config.Blips.JPounds.Sprite)
-				SetBlipColour (blip, Config.Blips.JPounds.Color)
-				SetBlipDisplay(blip, Config.Blips.JPounds.Display)
-				SetBlipScale  (blip, Config.Blips.JPounds.Scale)
-				SetBlipAsShortRange(blip, true)
-
-				BeginTextCommandSetBlipName("STRING")
-				AddTextComponentString(_U('blip_mechanic_impound'))
-				EndTextCommandSetBlipName(blip)
-				table.insert(JobBlips, blip)
-			end
+			BeginTextCommandSetBlipName("STRING")
+			AddTextComponentString(_U('blip_'..jobName..'_impound'))
+			EndTextCommandSetBlipName(blip)
+			table.insert(JobBlips, blip)
 		end
 	end
 end
